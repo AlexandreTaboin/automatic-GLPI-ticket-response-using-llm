@@ -30,7 +30,7 @@ Usage
 Ces scripts sont destinés à automatiser la gestion des tickets GLPI dans un environnement IT où l'efficacité et la rapidité de traitement sont cruciales.
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
--English
+English
 Automated GLPI Ticket Management with AI
 -
 Description

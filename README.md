@@ -1,5 +1,6 @@
 Français
 Gestion Automatisée des Tickets GLPI avec IA
+-
 Description
 
 Ce projet contient des scripts PowerShell qui permettent d'automatiser la gestion des tickets dans GLPI en utilisant l'intelligence artificielle (IA). Les scripts interagissent avec l'API GLPI pour définir automatiquement la priorité des tickets et fournir une première réponse automatisée aux utilisateurs. De plus, un modèle d'IA aide les techniciens en fournissant un premier diagnostic des tickets.
@@ -27,9 +28,11 @@ Installation
 Usage
 
 Ces scripts sont destinés à automatiser la gestion des tickets GLPI dans un environnement IT où l'efficacité et la rapidité de traitement sont cruciales.
-----------------------------------------------------------------------------------------
-English
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+-English
 Automated GLPI Ticket Management with AI
+-
 Description
 
 This project contains PowerShell scripts that automate the management of tickets in GLPI using artificial intelligence (AI). The scripts interact with the GLPI API to automatically set ticket priorities and provide an initial automated response to users. Additionally, an AI model helps technicians by providing an initial diagnosis of the tickets.

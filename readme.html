@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLPI AI Processor — Documentation complète</title>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2236;
+            --bg-code: #0d1117;
+            --border: #2d3a56;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.08);
+        }
+
+        html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ANIMATED BACKGROUND
+           ═══════════════════════════════════════════════════════════════ */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+        .bg-orb--blue   { width: 600px; height: 600px; background: rgba(59,130,246,0.06); top: -200px; right: -200px; }
+        .bg-orb--purple { width: 500px; height: 500px; background: rgba(139,92,246,0.05); bottom: -150px; left: -150px; animation-delay: -10s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 20px); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .navbar.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+
+        .navbar__inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+
+        .navbar__brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .navbar__brand svg { flex-shrink: 0; }
+
+        .navbar__links {
+            display: flex;
+            gap: 6px;
+            list-style: none;
+        }
+        .navbar__links a {
+            display: block;
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+        .navbar__links a:hover {
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .navbar__hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 6px;
+        }
+        .navbar__hamburger span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 900px) {
+            .navbar__hamburger { display: flex; }
+            .navbar__links {
+                position: absolute;
+                top: 70px; left: 0; right: 0;
+                flex-direction: column;
+                background: rgba(10, 14, 26, 0.97);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border);
+                padding: 1rem;
+                display: none;
+            }
+            .navbar__links.open { display: flex; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HERO
+           ═══════════════════════════════════════════════════════════════ */
+        .hero {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 160px 2rem 100px;
+        }
+
+        .hero__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 24px;
+            letter-spacing: 0.02em;
+        }
+        .hero__badge .dot {
+            width: 8px; height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hero__title {
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            letter-spacing: -0.03em;
+        }
+        .hero__title span {
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero__desc {
+            max-width: 640px;
+            margin: 0 auto 40px;
+            color: var(--text-secondary);
+            font-size: 1.12rem;
+            line-height: 1.8;
+        }
+
+        .hero__buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.25s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn--primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+        }
+        .btn--primary:hover {
+            background: #2563eb;
+            box-shadow: 0 6px 24px rgba(59,130,246,0.5);
+            transform: translateY(-2px);
+        }
+        .btn--outline {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn--outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(59,130,246,0.05);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ARCHITECTURE DIAGRAM
+           ═══════════════════════════════════════════════════════════════ */
+        .arch-diagram {
+            max-width: 800px;
+            margin: 60px auto 0;
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-glow);
+        }
+        .arch-diagram__flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .arch-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            min-width: 140px;
+            transition: all 0.3s;
+        }
+        .arch-node:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(59,130,246,0.12);
+        }
+        .arch-node__icon { font-size: 2rem; }
+        .arch-node__label { font-weight: 700; font-size: 0.95rem; }
+        .arch-node__sub { font-size: 0.78rem; color: var(--text-muted); }
+        .arch-arrow {
+            font-size: 1.6rem;
+            color: var(--accent);
+            animation: arrowPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MAIN CONTENT
+           ═══════════════════════════════════════════════════════════════ */
+        .content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 100px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FEATURES GRID
+           ═══════════════════════════════════════════════════════════════ */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .feature-card {
+            padding: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 30px rgba(59,130,246,0.1);
+            transform: translateY(-4px);
+        }
+        .feature-card__icon {
+            width: 48px; height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+        }
+        .feature-card__icon--green  { background: rgba(16,185,129,0.1); }
+        .feature-card__icon--purple { background: rgba(139,92,246,0.1); }
+        .feature-card__icon--yellow { background: rgba(245,158,11,0.1); }
+        .feature-card__icon--cyan   { background: rgba(6,182,212,0.1); }
+        .feature-card__icon--red    { background: rgba(239,68,68,0.1); }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SECTIONS
+           ═══════════════════════════════════════════════════════════════ */
+        .section {
+            margin-bottom: 80px;
+        }
+
+        .section__header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .section__number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .section__title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .section__subtitle {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 32px 0 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section__subtitle::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .section p, .section li {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+        .section p { margin-bottom: 16px; }
+
+        .section ul, .section ol {
+            padding-left: 24px;
+            margin-bottom: 20px;
+        }
+        .section li { margin-bottom: 8px; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CODE BLOCKS
+           ═══════════════════════════════════════════════════════════════ */
+        .code-block {
+            position: relative;
+            margin: 20px 0;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .code-block__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-block__lang {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .code-block__lang .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+        .code-block__lang .dot--ps    { background: #2563eb; }
+        .code-block__lang .dot--bash  { background: #10b981; }
+        .code-block__lang .dot--ini   { background: #f59e0b; }
+        .code-block__lang .dot--docker { background: #06b6d4; }
+        .code-block__lang .dot--text  { background: #64748b; }
+
+        .code-block__copy {
+            padding: 6px 14px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 6px;
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }
+        .code-block__copy:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        .code-block__copy.copied {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--accent-green);
+        }
+
+        .code-block pre {
+            padding: 20px;
+            background: var(--bg-code);
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        /* Syntax coloring */
+        .hl-comment  { color: #6a737d; font-style: italic; }
+        .hl-keyword  { color: #ff7b72; }
+        .hl-string   { color: #a5d6ff; }
+        .hl-variable { color: #d2a8ff; }
+        .hl-param    { color: #79c0ff; }
+        .hl-number   { color: #f2cc60; }
+        .hl-cmd      { color: #ffa657; }
+        .hl-flag     { color: #7ee787; }
+
+        /* Inline code */
+        code:not(pre code) {
+            padding: 3px 8px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.12);
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            color: var(--accent);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           TABLES
+           ═══════════════════════════════════════════════════════════════ */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        thead { background: rgba(30, 41, 59, 0.6); }
+        th {
+            padding: 14px 20px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(45, 58, 86, 0.4);
+            color: var(--text-secondary);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(59, 130, 246, 0.03); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ALERT BOXES
+           ═══════════════════════════════════════════════════════════════ */
+        .alert {
+            display: flex;
+            gap: 16px;
+            padding: 20px 24px;
+            border-radius: var(--radius-sm);
+            margin: 20px 0;
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+        .alert__icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .alert--info {
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+        }
+        .alert--warning {
+            background: rgba(245, 158, 11, 0.06);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+        }
+        .alert--danger {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+        .alert--success {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           STEPS / TIMELINE
+           ═══════════════════════════════════════════════════════════════ */
+        .steps { margin: 24px 0; }
+        .step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .step__marker {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .step__dot {
+            width: 36px; height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: var(--accent);
+            z-index: 1;
+        }
+        .step__line {
+            width: 2px;
+            flex: 1;
+            background: var(--border);
+            margin-top: 8px;
+        }
+        .step:last-child .step__line { display: none; }
+
+        .step__content { padding-top: 4px; flex: 1; }
+        .step__title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+        .step__desc {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           TABS
+           ═══════════════════════════════════════════════════════════════ */
+        .tabs {
+            margin: 24px 0;
+        }
+        .tabs__nav {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+            overflow-x: auto;
+        }
+        .tabs__btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .tabs__btn:hover { color: var(--text-secondary); }
+        .tabs__btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tabs__panel {
+            display: none;
+            padding-top: 24px;
+        }
+        .tabs__panel.active { display: block; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ACCORDION
+           ═══════════════════════════════════════════════════════════════ */
+        .accordion { margin: 20px 0; }
+        .accordion__item {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .accordion__trigger {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }
+        .accordion__trigger:hover { background: rgba(59,130,246,0.05); }
+        .accordion__trigger .chevron {
+            transition: transform 0.3s;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .accordion__item.open .accordion__trigger .chevron { transform: rotate(180deg); }
+        .accordion__body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+        .accordion__body__inner {
+            padding: 0 20px 20px;
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PRIORITY TABLE SPECIAL
+           ═══════════════════════════════════════════════════════════════ */
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.82rem;
+        }
+        .priority-badge--1 { background: rgba(100,116,139,0.15); color: #94a3b8; }
+        .priority-badge--2 { background: rgba(6,182,212,0.12); color: #67e8f9; }
+        .priority-badge--3 { background: rgba(245,158,11,0.12); color: #fcd34d; }
+        .priority-badge--4 { background: rgba(249,115,22,0.12); color: #fdba74; }
+        .priority-badge--5 { background: rgba(239,68,68,0.12); color: #fca5a5; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FILE TREE
+           ═══════════════════════════════════════════════════════════════ */
+        .file-tree {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            margin: 20px 0;
+        }
+        .file-tree__line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+            color: var(--text-secondary);
+        }
+        .file-tree__line .icon { width: 20px; text-align: center; }
+        .file-tree__line--dir  .icon { color: var(--accent); }
+        .file-tree__line--file .icon { color: var(--text-muted); }
+        .file-tree__line .name { color: var(--text-primary); }
+        .file-tree__line .desc { color: var(--text-muted); font-size: 0.8rem; margin-left: auto; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════════════════ */
+        .footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--border);
+            padding: 40px 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SCROLL TO TOP
+           ═══════════════════════════════════════════════════════════════ */
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 46px; height: 46px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 999;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+        }
+        .scroll-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .scroll-top:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESPONSIVENESS
+           ═══════════════════════════════════════════════════════════════ */
+        @media (max-width: 600px) {
+            .hero { padding: 130px 1.2rem 60px; }
+            .content { padding: 0 1.2rem 60px; }
+            .arch-diagram__flow { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); }
+            .section__title { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb--blue"></div>
+<div class="bg-orb bg-orb--purple"></div>
+
+<!-- NAVIGATION -->
+<nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+        <a href="#" class="navbar__brand">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            GLPI AI Processor
+        </a>
+        <button class="navbar__hamburger" id="hamburger" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="navbar__links" id="navLinks">
+            <li><a href="#features">Fonctionnalités</a></li>
+            <li><a href="#prerequisites">Prérequis</a></li>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#ollama">Modèles Ollama</a></li>
+            <li><a href="#usage">Utilisation</a></li>
+            <li><a href="#config">Configuration</a></li>
+            <li><a href="#security">Sécurité</a></li>
+            <li><a href="#faq">FAQ</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+    <div class="hero__badge">
+        <span class="dot"></span>
+        Version 2.26.02 — Local AI
+    </div>
+    <h1 class="hero__title">
+        Automatisez vos tickets GLPI<br>avec <span>l'intelligence artificielle locale</span>
+    </h1>
+    <p class="hero__desc">
+        Un script PowerShell qui analyse automatiquement vos tickets GLPI, détermine leur priorité et génère une première réponse technique — le tout via des modèles IA tournant <strong>localement</strong> avec Ollama. Aucune donnée ne quitte votre infrastructure.
+    </p>
+    <div class="hero__buttons">
+        <a href="#installation" class="btn btn--primary">
+            🚀 Guide d'installation
+        </a>
+        <a href="https://github.com/AlexandreTaboin/automatic-GLPI-ticket-response-using-llm" class="btn btn--outline" target="_blank">
+            ⭐ Voir sur GitHub
+        </a>
+    </div>
+
+    <!-- Architecture diagram -->
+    <div class="arch-diagram">
+        <div class="arch-diagram__flow">
+            <div class="arch-node">
+                <div class="arch-node__icon">🎫</div>
+                <div class="arch-node__label">GLPI</div>
+                <div class="arch-node__sub">API REST</div>
+            </div>
+            <div class="arch-arrow">⟷</div>
+            <div class="arch-node">
+                <div class="arch-node__icon">⚙️</div>
+                <div class="arch-node__label">Script PS1</div>
+                <div class="arch-node__sub">PowerShell 5.1+</div>
+            </div>
+            <div class="arch-arrow">⟷</div>
+            <div class="arch-node">
+                <div class="arch-node__icon">🧠</div>
+                <div class="arch-node__label">Ollama</div>
+                <div class="arch-node__sub">3 modèles LLM</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="content">
+
+    <!-- ═══ FEATURES ═══ -->
+    <section id="features" class="section">
+        <div class="section__header">
+            <div class="section__number">✦</div>
+            <h2 class="section__title">Fonctionnalités</h2>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-card__icon">🎯</div>
+                <h3>Priorité automatique</h3>
+                <p>Le modèle <code>GLPIa</code> analyse le titre et le contenu du ticket pour attribuer une priorité de 1 à 5, basée sur l'impact et l'urgence.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--green">💬</div>
+                <h3>Réponse automatique</h3>
+                <p>Le modèle <code>GLPIaresponse</code> génère une première réponse technique et courtoise, avec des pistes de résolution immédiates.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--purple">🔍</div>
+                <h3>Aide technicien</h3>
+                <p>Le modèle <code>glpiaide</code> produit une analyse technique approfondie destinée aux techniciens : diagnostic, causes probables, outils.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--cyan">🔒</div>
+                <h3>100% Local</h3>
+                <p>Toutes les inférences IA sont effectuées via Ollama en local. Aucune donnée sensible ne quitte votre réseau.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--yellow">🔁</div>
+                <h3>Traitement continu</h3>
+                <p>Le script tourne en boucle, détecte les nouveaux tickets et les traite automatiquement avec un système de marquage anti-doublon.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--red">📝</div>
+                <h3>Logging complet</h3>
+                <p>Chaque action est tracée dans un fichier de log avec horodatage, niveau de sévérité et détails de l'opération.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ PREREQUISITES ═══ -->
+    <section id="prerequisites" class="section">
+        <div class="section__header">
+            <div class="section__number">1</div>
+            <h2 class="section__title">Prérequis</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Composant</th>
+                        <th>Version</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Windows</strong></td>
+                        <td>10 / Server 2016+</td>
+                        <td>PowerShell 5.1 ou supérieur</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GLPI</strong></td>
+                        <td>10.x</td>
+                        <td>API REST activée + tokens configurés</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ollama</strong></td>
+                        <td>0.1+</td>
+                        <td>Installé localement ou accessible en réseau</td>
+                    </tr>
+                    <tr>
+                        <td><strong>RAM</strong></td>
+                        <td>16 Go+</td>
+                        <td>Recommandé pour les modèles Mistral 7B</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GPU</strong></td>
+                        <td>Optionnel</td>
+                        <td>Accélère considérablement l'inférence</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert--info">
+            <div class="alert__icon">💡</div>
+            <div>
+                <strong>Ollama</strong> peut être installé en quelques secondes depuis <a href="https://ollama.com" target="_blank" style="color:inherit;text-decoration:underline;">ollama.com</a>. Il tourne comme un service local et expose une API REST sur le port <code>11434</code>.
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ INSTALLATION ═══ -->
+    <section id="installation" class="section">
+        <div class="section__header">
+            <div class="section__number">2</div>
+            <h2 class="section__title">Installation</h2>
+        </div>
+
+        <div class="steps">
+            <!-- Step 1 -->
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">1</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Cloner le dépôt</div>
+                    <div class="code-block">
+                        <div class="code-block__header">
+                            <div class="code-block__lang"><span class="dot dot--bash"></span> Bash / PowerShell</div>
+                            <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                        </div>
+                        <pre><code><span class="hl-cmd">git</span> clone https://github.com/AlexandreTaboin/automatic-GLPI-ticket-response-using-llm.git
+<span class="hl-cmd">cd</span> glpi-ai-processor</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">2</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Configurer les tokens GLPI</div>
+                    <div class="step__desc">
+                        <p>Ouvrez le script <code>GLPI_AI_Processor.ps1</code> et modifiez la section <code> $ Script:Config</code> avec vos propres valeurs :</p>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-block__header">
+                            <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell</div>
+                            <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                        </div>
+                        <pre><code><span class="hl-variable"> $ Script:Config</span> = @{
+    <span class="hl-param">ApiUrl</span>           = <span class="hl-string">"http://votre-glpi.domaine.local/apirest.php"</span>
+    <span class="hl-param">AppToken</span>         = <span class="hl-string">"VOTRE_APP_TOKEN_ICI"</span>
+    <span class="hl-param">UserToken</span>        = <span class="hl-string">"VOTRE_USER_TOKEN_ICI"</span>
+    <span class="hl-param">GlpiaideToken</span>    = <span class="hl-string">"VOTRE_GLPIAIDE_TOKEN_ICI"</span>
+    <span class="hl-param">OllamaUrl</span>        = <span class="hl-string">"http://localhost:11434/api/generate"</span>
+    <span class="hl-comment"># ...</span>
+}</code></pre>
+                    </div>
+
+                    <div class="alert alert--danger">
+                        <div class="alert__icon">⚠️</div>
+                        <div>
+                            <strong>Ne jamais publier vos tokens !</strong> Si vous partagez ce script, remplacez tous les tokens par des valeurs fictives. Consultez la section <a href="#security" style="color:inherit;text-decoration:underline;">Sécurité</a> pour les bonnes pratiques.
+                        </div>
+                    </div>
+
+                    <p>Pour obtenir les tokens dans GLPI :</p>
+                    <ul>
+                        <li><strong>App-Token</strong> : <code>Configuration</code> → <code>Générale</code> → <code>API</code> → Ajouter un client API</li>
+                        <li><strong>User-Token (principal)</strong> : <code>Administration</code> → <code>Utilisateurs</code> → votre compte → <code>Clés API distantes</code></li>
+                        <li><strong>User-Token (GLPIaide)</strong> : Idem pour le compte dédié à l'aide IA</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">3</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Créer les dossiers nécessaires</div>
+                    <div class="code-block">
+                        <div class="code-block__header">
+                            <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell</div>
+                            <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                        </div>
+                        <pre><code><span class="hl-cmd">New-Item</span> <span class="hl-flag">-ItemType</span> Directory <span class="hl-flag">-Path</span> <span class="hl-string">"C:\Scripts"</span> <span class="hl-flag">-Force</span>
+<span class="hl-cmd">New-Item</span> <span class="hl-flag">-ItemType</span> Directory <span class="hl-flag">-Path</span> <span class="hl-string">"C:\Modelfiles"</span> <span class="hl-flag">-Force</span></code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">4</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Installer Ollama</div>
+                    <div class="step__desc">
+                        <p>Téléchargez et installez Ollama depuis le site officiel, puis vérifiez qu'il fonctionne :</p>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-block__header">
+                            <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                            <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                        </div>
+                        <pre><code><span class="hl-comment"># Vérifier qu'Ollama est en cours d'exécution</span>
+<span class="hl-cmd">ollama</span> list
+
+<span class="hl-comment"># Télécharger le modèle de base Mistral</span>
+<span class="hl-cmd">ollama</span> pull mistral</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">5</div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Créer les modèles personnalisés</div>
+                    <div class="step__desc">
+                        <p>Suivez les instructions détaillées dans la section <a href="#ollama">Modèles Ollama</a> ci-dessous.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ OLLAMA MODELS ═══ -->
+    <section id="ollama" class="section">
+        <div class="section__header">
+            <div class="section__number">3</div>
+            <h2 class="section__title">Création des modèles Ollama</h2>
+        </div>
+
+        <p>
+            Le script utilise <strong>trois modèles personnalisés</strong> créés à partir de Mistral. Chaque modèle a un rôle spécifique avec des paramètres de température et de génération adaptés.
+        </p>
+
+        <div class="alert alert--info">
+            <div class="alert__icon">📁</div>
+            <div>
+                Chaque modèle est défini par un fichier <strong>Modelfile</strong> — un fichier texte contenant les instructions système et les paramètres du modèle. Créez ces fichiers dans <code>C:\Modelfiles\</code>.
+            </div>
+        </div>
+
+        <!-- TABS for models -->
+        <div class="tabs">
+            <div class="tabs__nav">
+                <button class="tabs__btn active" onclick="switchTab(event, 'tab-glpia')">🎯 GLPIa (Priorité)</button>
+                <button class="tabs__btn" onclick="switchTab(event, 'tab-response')">💬 GLPIaresponse</button>
+                <button class="tabs__btn" onclick="switchTab(event, 'tab-aide')">🔍 glpiaide</button>
+            </div>
+
+            <!-- TAB: GLPIa -->
+            <div class="tabs__panel active" id="tab-glpia">
+                <h3 class="section__subtitle">Modèle GLPIa — Analyse de priorité</h3>
+                <p>Ce modèle est conçu pour retourner <strong>uniquement un chiffre entre 1 et 5</strong>. La température basse (0.1) garantit des réponses déterministes.</p>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Priorité</th><th>Niveau</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="priority-badge priority-badge--1">1</span></td><td>Très basse</td><td>Demande d'information, question générale</td></tr>
+                            <tr><td><span class="priority-badge priority-badge--2">2</span></td><td>Basse</td><td>Demande de changement mineur, amélioration cosmétique</td></tr>
+                            <tr><td><span class="priority-badge priority-badge--3">3</span></td><td>Moyenne</td><td>Dysfonctionnement partiel, un contournement existe</td></tr>
+                            <tr><td><span class="priority-badge priority-badge--4">4</span></td><td>Haute</td><td>Service dégradé pour plusieurs utilisateurs, impact métier</td></tr>
+                            <tr><td><span class="priority-badge priority-badge--5">5</span></td><td>Très haute</td><td>Service critique totalement indisponible, blocage complet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p><strong>Étape 1 :</strong> Créer le fichier <code>C:\Modelfiles\Modelfile_GLPIa</code></p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--docker"></span> Modelfile</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-keyword">FROM</span> mistral
+
+<span class="hl-keyword">SYSTEM</span> <span class="hl-string">"""
+Tu es un assistant spécialisé dans l'analyse de tickets de support informatique.
+Ta seule mission est de déterminer la priorité d'un ticket sur une échelle de 1 à 5.
+
+Échelle de priorité :
+1 - Très basse : Demande d'information, question générale
+2 - Basse : Demande de changement mineur, amélioration cosmétique
+3 - Moyenne : Dysfonctionnement partiel, un contournement existe
+4 - Haute : Service dégradé pour plusieurs utilisateurs, impact métier
+5 - Très haute : Service critique totalement indisponible, blocage complet
+
+Tu dois répondre UNIQUEMENT par un chiffre entre 1 et 5. Aucun texte, aucune explication.
+"""</span>
+
+<span class="hl-keyword">PARAMETER</span> temperature <span class="hl-number">0.1</span>
+<span class="hl-keyword">PARAMETER</span> top_p <span class="hl-number">0.5</span>
+<span class="hl-keyword">PARAMETER</span> num_predict <span class="hl-number">5</span></code></pre>
+                </div>
+
+                <p><strong>Étape 2 :</strong> Créer le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> create GLPIa <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_GLPIa"</span></code></pre>
+                </div>
+
+                <p><strong>Étape 3 :</strong> Tester le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> run GLPIa <span class="hl-string">"L'imprimante du 2e étage ne fonctionne plus"</span>
+<span class="hl-comment"># Résultat attendu : 3</span>
+
+<span class="hl-cmd">ollama</span> run GLPIa <span class="hl-string">"Serveur de production totalement inaccessible"</span>
+<span class="hl-comment"># Résultat attendu : 5</span>
+
+<span class="hl-cmd">ollama</span> run GLPIa <span class="hl-string">"Comment changer mon fond d'écran ?"</span>
+<span class="hl-comment"># Résultat attendu : 1</span></code></pre>
+                </div>
+            </div>
+
+            <!-- TAB: GLPIaresponse -->
+            <div class="tabs__panel" id="tab-response">
+                <h3 class="section__subtitle">Modèle GLPIaresponse — Réponse automatique</h3>
+                <p>Ce modèle génère une <strong>première réponse</strong> destinée à l'utilisateur qui a ouvert le ticket. Le ton est professionnel, courtois et rassurant. La réponse est formatée en HTML pour s'intégrer directement dans GLPI.</p>
+
+                <p><strong>Étape 1 :</strong> Créer le fichier <code>C:\Modelfiles\Modelfile_GLPIaresponse</code></p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--docker"></span> Modelfile</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-keyword">FROM</span> mistral
+
+<span class="hl-keyword">SYSTEM</span> <span class="hl-string">"""
+Tu es un technicien de support informatique de niveau 1 bienveillant et professionnel.
+Tu rédiges la première réponse à un ticket de support.
+
+Règles :
+- Commence par saluer l'utilisateur et accuser réception de sa demande
+- Propose 2 à 3 pistes de résolution simples et concrètes
+- Termine en indiquant qu'un technicien prendra le relais si nécessaire
+- Utilise un ton courtois et rassurant
+- Rédige en français
+- Sois concis (150 mots maximum)
+- Formate ta réponse en HTML simple (balises &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;b&gt;)
+"""</span>
+
+<span class="hl-keyword">PARAMETER</span> temperature <span class="hl-number">0.7</span>
+<span class="hl-keyword">PARAMETER</span> top_p <span class="hl-number">0.9</span>
+<span class="hl-keyword">PARAMETER</span> num_predict <span class="hl-number">500</span></code></pre>
+                </div>
+
+                <p><strong>Étape 2 :</strong> Créer le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> create GLPIaresponse <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_GLPIaresponse"</span></code></pre>
+                </div>
+
+                <p><strong>Étape 3 :</strong> Tester le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> run GLPIaresponse <span class="hl-string">"Je n'arrive plus à me connecter à ma boîte mail Outlook"</span></code></pre>
+                </div>
+
+                <div class="alert alert--success">
+                    <div class="alert__icon">✅</div>
+                    <div>
+                        <strong>Résultat attendu :</strong> Un message HTML structuré avec salutation, 2-3 pistes de résolution (vérifier le mot de passe, tester le webmail, redémarrer Outlook) et une mention de prise en charge par un technicien.
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: glpiaide -->
+            <div class="tabs__panel" id="tab-aide">
+                <h3 class="section__subtitle">Modèle glpiaide — Assistance technicien</h3>
+                <p>Ce modèle est <strong>destiné aux techniciens</strong>, pas aux utilisateurs finaux. Il fournit une analyse technique approfondie : catégorisation du problème, causes probables, procédure de diagnostic et outils recommandés.</p>
+
+                <p><strong>Étape 1 :</strong> Créer le fichier <code>C:\Modelfiles\Modelfile_glpiaide</code></p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--docker"></span> Modelfile</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-keyword">FROM</span> mistral
+
+<span class="hl-keyword">SYSTEM</span> <span class="hl-string">"""
+Tu es un ingénieur de support informatique de niveau 2/3 expérimenté.
+Tu analyses un ticket de support et fournis une aide technique au technicien assigné.
+
+Structure ta réponse ainsi :
+1. CATÉGORIE : Identifie le domaine (réseau, poste de travail, serveur, applicatif, sécurité, messagerie, impression, téléphonie)
+2. CAUSES PROBABLES : Liste les 3 causes les plus fréquentes par ordre de probabilité
+3. DIAGNOSTIC : Propose une procédure de diagnostic pas à pas
+4. OUTILS : Suggère les outils et commandes utiles (PowerShell, CMD, outils GLPI/réseau)
+5. ESCALADE : Indique dans quels cas escalader au niveau supérieur
+
+Règles :
+- Sois technique et précis
+- Utilise du jargon technique approprié
+- Rédige en français
+- Formate ta réponse en HTML (balises &lt;h4&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;code&gt;, &lt;b&gt;)
+- Maximum 300 mots
+"""</span>
+
+<span class="hl-keyword">PARAMETER</span> temperature <span class="hl-number">0.4</span>
+<span class="hl-keyword">PARAMETER</span> top_p <span class="hl-number">0.8</span>
+<span class="hl-keyword">PARAMETER</span> num_predict <span class="hl-number">800</span></code></pre>
+                </div>
+
+                <p><strong>Étape 2 :</strong> Créer le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> create glpiaide <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_glpiaide"</span></code></pre>
+                </div>
+
+                <p><strong>Étape 3 :</strong> Tester le modèle</p>
+
+                <div class="code-block">
+                    <div class="code-block__header">
+                        <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                        <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+                    </div>
+                    <pre><code><span class="hl-cmd">ollama</span> run glpiaide <span class="hl-string">"Écran bleu BSOD récurrent sur le poste de Mme Dupont, erreur IRQL_NOT_LESS_OR_EQUAL"</span></code></pre>
+                </div>
+
+                <div class="alert alert--success">
+                    <div class="alert__icon">✅</div>
+                    <div>
+                        <strong>Résultat attendu :</strong> Une analyse structurée avec catégorisation (poste de travail), causes probables (pilote défaillant, RAM défectueuse, mise à jour problématique), procédure de diagnostic (vérifier Event Viewer, sfc /scannow, memtest) et critères d'escalade.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Récapitulatif des 3 modèles -->
+        <h3 class="section__subtitle">Récapitulatif des commandes</h3>
+        <p>Voici les trois commandes à exécuter dans l'ordre pour créer tous les modèles :</p>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal — Création complète</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># 1. Télécharger le modèle de base</span>
+<span class="hl-cmd">ollama</span> pull mistral
+
+<span class="hl-comment"># 2. Créer le modèle d'analyse de priorité</span>
+<span class="hl-cmd">ollama</span> create GLPIa <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_GLPIa"</span>
+
+<span class="hl-comment"># 3. Créer le modèle de réponse automatique</span>
+<span class="hl-cmd">ollama</span> create GLPIaresponse <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_GLPIaresponse"</span>
+
+<span class="hl-comment"># 4. Créer le modèle d'aide technicien</span>
+<span class="hl-cmd">ollama</span> create glpiaide <span class="hl-flag">-f</span> <span class="hl-string">"C:\Modelfiles\Modelfile_glpiaide"</span>
+
+<span class="hl-comment"># 5. Vérifier que les 3 modèles sont bien créés</span>
+<span class="hl-cmd">ollama</span> list</code></pre>
+        </div>
+
+        <div class="alert alert--info">
+            <div class="alert__icon">📊</div>
+            <div>
+                <strong>Espace disque :</strong> Le modèle Mistral 7B occupe environ 4 Go. Les 3 modèles personnalisés partagent les mêmes poids de base, donc l'espace total reste d'environ <strong>~4.5 Go</strong>.
+            </div>
+        </div>
+
+        <h3 class="section__subtitle">Comparatif des paramètres</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paramètre</th>
+                        <th>GLPIa</th>
+                        <th>GLPIaresponse</th>
+                        <th>glpiaide</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>temperature</code></td>
+                        <td>0.1</td>
+                        <td>0.7</td>
+                        <td>0.4</td>
+                        <td>Créativité de la réponse (0 = déterministe, 1 = créatif)</td>
+                    </tr>
+                    <tr>
+                        <td><code>top_p</code></td>
+                        <td>0.5</td>
+                        <td>0.9</td>
+                        <td>0.8</td>
+                        <td>Diversité du vocabulaire utilisé</td>
+                    </tr>
+                    <tr>
+                        <td><code>num_predict</code></td>
+                        <td>5</td>
+                        <td>500</td>
+                        <td>800</td>
+                        <td>Nombre maximum de tokens en sortie</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rôle</strong></td>
+                        <td>Chiffre 1-5</td>
+                        <td>Réponse utilisateur</td>
+                        <td>Aide technicien</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ═══ CONFIGURATION ═══ -->
+    <section id="config" class="section">
+        <div class="section__header">
+            <div class="section__number">4</div>
+            <h2 class="section__title">Configuration</h2>
+        </div>
+
+        <h3 class="section__subtitle">Paramètres du script</h3>
+        <p>Tous les paramètres sont centralisés dans le bloc <code>$Script:Config</code> en haut du script :</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paramètre</th>
+                        <th>Description</th>
+                        <th>Valeur par défaut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ApiUrl</code></td>
+                        <td>URL de l'API REST de GLPI</td>
+                        <td><em>À configurer</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>AppToken</code></td>
+                        <td>Token de l'application API dans GLPI</td>
+                        <td><em>À configurer</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>UserToken</code></td>
+                        <td>Token de l'utilisateur principal</td>
+                        <td><em>À configurer</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>GlpiaideToken</code></td>
+                        <td>Token de l'utilisateur GLPIaide</td>
+                        <td><em>À configurer</em></td>
+                    </tr>
+                    <tr>
+                        <td><code>OllamaUrl</code></td>
+                        <td>URL de l'API Ollama</td>
+                        <td><code>http://localhost:11434/api/generate</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>ProcessedMarker</code></td>
+                        <td>Valeur <code>requesttypes_id</code> pour marquer les tickets traités</td>
+                        <td><code>8</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>RetryDelay</code></td>
+                        <td>Délai entre chaque cycle de vérification (secondes)</td>
+                        <td><code>30</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>OllamaTimeout</code></td>
+                        <td>Timeout des requêtes Ollama (secondes)</td>
+                        <td><code>9000</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>LogFile</code></td>
+                        <td>Chemin du fichier de logs</td>
+                        <td><code>C:\Scripts\GLPI_Process.log</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>MemoryFile</code></td>
+                        <td>Fichier mémoire du dernier ticket traité</td>
+                        <td><code>C:\Scripts\GLPI_LastTicket.txt</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="section__subtitle">Configuration de l'API GLPI</h3>
+        <p>Pour activer l'API REST dans GLPI :</p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">1</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Activer l'API</div>
+                    <div class="step__desc">
+                        <p>Allez dans <code>Configuration</code> → <code>Générale</code> → <code>API</code> et activez l'API REST. Cochez :</p>
+                        <ul>
+                            <li>✅ Activer l'API REST</li>
+                            <li>✅ Activer la connexion avec identifiants (user_token)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">2</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Créer un client API</div>
+                    <div class="step__desc">
+                        <p>Toujours dans la page API, ajoutez un <strong>client API</strong> :</p>
+                        <ul>
+                            <li>Nom : <code>GLPI AI Processor</code></li>
+                            <li>Actif : ✅</li>
+                            <li>Plage IP autorisée : adresse de votre serveur exécutant le script</li>
+                            <li>Notez le <strong>App-Token</strong> généré</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">3</div>
+                    <div class="step__line"></div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Générer les User-Tokens</div>
+                    <div class="step__desc">
+                        <p>Allez dans <code>Administration</code> → <code>Utilisateurs</code> → sélectionnez le compte → onglet <code>Clés API distantes</code> → <strong>Régénérer</strong>.</p>
+                        <p>Répétez cette opération pour :</p>
+                        <ul>
+                            <li><strong>Compte principal</strong> : celui qui modifie la priorité et ajoute les suivis</li>
+                            <li><strong>Compte GLPIaide</strong> : celui qui ajoute les notes techniques (peut être le même compte ou un compte dédié)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step__marker">
+                    <div class="step__dot">4</div>
+                </div>
+                <div class="step__content">
+                    <div class="step__title">Vérifier les droits</div>
+                    <div class="step__desc">
+                        <p>Les comptes doivent avoir les profils GLPI avec les droits suivants :</p>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Droit</th><th>Compte principal</th><th>Compte GLPIaide</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Lire les tickets</td><td>✅</td><td>✅</td></tr>
+                                    <tr><td>Modifier les tickets (priorité)</td><td>✅</td><td>❌</td></tr>
+                                    <tr><td>Ajouter des suivis</td><td>✅</td><td>✅</td></tr>
+                                    <tr><td>Voir tous les tickets</td><td>✅</td><td>✅</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ USAGE ═══ -->
+    <section id="usage" class="section">
+        <div class="section__header">
+            <div class="section__number">5</div>
+            <h2 class="section__title">Utilisation</h2>
+        </div>
+
+        <h3 class="section__subtitle">Lancement manuel</h3>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell (Administrateur)</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Autoriser l'exécution de scripts (une seule fois)</span>
+<span class="hl-cmd">Set-ExecutionPolicy</span> <span class="hl-flag">-ExecutionPolicy</span> Bypass <span class="hl-flag">-Scope</span> CurrentUser
+
+<span class="hl-comment"># Lancer le script</span>
+<span class="hl-cmd">cd</span> C:\Scripts
+.\GLPI_AI_Processor.ps1</code></pre>
+        </div>
+
+        <h3 class="section__subtitle">Sortie console attendue</h3>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--text"></span> Console Output</div>
+            </div>
+            <pre><code>╔══════════════════════════════════════════════════════════════════╗
+║  GLPI - Traitement automatique par IA v2.26.02                  ║
+║  Modèles : GLPIa / GLPIaresponse / glpiaide                    ║
+║  Filtre  : Nouveaux tickets (statut 1, source ≠ 8)             ║
+║  Marqueur: requesttypes_id = 8                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+<span class="hl-comment">[2025-02-17 10:00:01][Info]</span> === Nouveau cycle ===
+<span class="hl-string">[2025-02-17 10:00:01][Success]</span> Session principal ouverte
+<span class="hl-string">[2025-02-17 10:00:02][Success]</span> Session GLPIaide ouverte
+<span class="hl-string">[2025-02-17 10:00:03][Info]</span> Ticket #1542 : "Imprimante HP bloquée 2e étage"
+<span class="hl-string">[2025-02-17 10:00:08][Success]</span> → Priorité déterminée : 3 (Moyenne)
+<span class="hl-string">[2025-02-17 10:00:15][Success]</span> → Réponse utilisateur ajoutée
+<span class="hl-string">[2025-02-17 10:00:22][Success]</span> → Note technique ajoutée
+<span class="hl-string">[2025-02-17 10:00:22][Success]</span> Ticket #1542 traité avec succès
+<span class="hl-comment">[2025-02-17 10:00:22][Info]</span> Cycle terminé : 1 traité(s), 0 erreur(s)
+<span class="hl-comment">[2025-02-17 10:00:22][Info]</span> Prochain cycle dans 30s
+══════════════════════════════════════════════════════════════════</code></pre>
+        </div>
+
+        <h3 class="section__subtitle">Exécution en tant que tâche planifiée</h3>
+        <p>Pour que le script s'exécute automatiquement au démarrage du serveur :</p>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell (Administrateur)</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Créer une tâche planifiée qui démarre le script au boot</span>
+<span class="hl-variable">$action</span> = <span class="hl-cmd">New-ScheduledTaskAction</span> `
+    <span class="hl-flag">-Execute</span> <span class="hl-string">"powershell.exe"</span> `
+    <span class="hl-flag">-Argument</span> <span class="hl-string">"-NoProfile -ExecutionPolicy Bypass -File C:\Scripts\GLPI_AI_Processor.ps1"</span> `
+    <span class="hl-flag">-WorkingDirectory</span> <span class="hl-string">"C:\Scripts"</span>
+
+<span class="hl-variable">$trigger</span> = <span class="hl-cmd">New-ScheduledTaskTrigger</span> <span class="hl-flag">-AtStartup</span>
+
+<span class="hl-variable">$settings</span> = <span class="hl-cmd">New-ScheduledTaskSettingsSet</span> `
+    <span class="hl-flag">-AllowStartIfOnBatteries</span> `
+    <span class="hl-flag">-DontStopIfGoingOnBatteries</span> `
+    <span class="hl-flag">-RestartCount</span> <span class="hl-number">3</span> `
+    <span class="hl-flag">-RestartInterval</span> (<span class="hl-cmd">New-TimeSpan</span> <span class="hl-flag">-Minutes</span> <span class="hl-number">1</span>) `
+    <span class="hl-flag">-ExecutionTimeLimit</span> (<span class="hl-cmd">New-TimeSpan</span> <span class="hl-flag">-Days</span> <span class="hl-number">365</span>)
+
+<span class="hl-cmd">Register-ScheduledTask</span> `
+    <span class="hl-flag">-TaskName</span> <span class="hl-string">"GLPI AI Processor"</span> `
+    <span class="hl-flag">-Action</span> <span class="hl-variable">$action</span> `
+    <span class="hl-flag">-Trigger</span> <span class="hl-variable">$trigger</span> `
+    <span class="hl-flag">-Settings</span> <span class="hl-variable">$settings</span> `
+    <span class="hl-flag">-User</span> <span class="hl-string">"SYSTEM"</span> `
+    <span class="hl-flag">-RunLevel</span> Highest</code></pre>
+        </div>
+
+        <div class="alert alert--warning">
+            <div class="alert__icon">⏱️</div>
+            <div>
+                <strong>Note :</strong> Le script tourne en boucle infinie avec un délai de <code>30 secondes</code> entre chaque cycle. La tâche planifiée n'a pas besoin de répétition — le script gère lui-même sa boucle.
+            </div>
+        </div>
+
+        <h3 class="section__subtitle">Flux de traitement d'un ticket</h3>
+        <p>Voici le détail de ce qui se passe pour chaque ticket :</p>
+
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="flow-step__number">1</div>
+                <div class="flow-step__content">
+                    <strong>Détection</strong>
+                    <span>Recherche des tickets avec <code>status=1</code> et <code>requesttypes_id ≠ 8</code></span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">2</div>
+                <div class="flow-step__content">
+                    <strong>Analyse de priorité</strong>
+                    <span>Envoi du titre au modèle <code>GLPIa</code> → reçoit un chiffre 1-5</span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">3</div>
+                <div class="flow-step__content">
+                    <strong>Mise à jour priorité</strong>
+                    <span>PUT sur l'API GLPI pour mettre à jour <code>priority</code></span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">4</div>
+                <div class="flow-step__content">
+                    <strong>Génération réponse</strong>
+                    <span>Envoi au modèle <code>GLPIaresponse</code> → HTML de réponse utilisateur</span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">5</div>
+                <div class="flow-step__content">
+                    <strong>Ajout suivi</strong>
+                    <span>POST d'un <code>ITILFollowup</code> visible par l'utilisateur</span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">6</div>
+                <div class="flow-step__content">
+                    <strong>Aide technicien</strong>
+                    <span>Envoi au modèle <code>glpiaide</code> → note technique interne</span>
+                </div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <div class="flow-step__number">7</div>
+                <div class="flow-step__content">
+                    <strong>Marquage</strong>
+                    <span>Mise à jour <code>requesttypes_id = 8</code> pour éviter le retraitement</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ SECURITY ═══ -->
+    <section id="security" class="section">
+        <div class="section__header">
+            <div class="section__number">6</div>
+            <h2 class="section__title">Sécurité</h2>
+        </div>
+
+        <div class="alert alert--danger">
+            <div class="alert__icon">🔐</div>
+            <div>
+                <strong>IMPORTANT :</strong> Ne publiez JAMAIS vos tokens API sur un dépôt public. Si cela arrive accidentellement, <strong>révoquez immédiatement les tokens</strong> dans GLPI et régénérez-en de nouveaux.
+            </div>
+        </div>
+
+        <h3 class="section__subtitle">Bonnes pratiques</h3>
+        <ul>
+            <li>Remplacez les tokens par des valeurs fictives (<code>VOTRE_TOKEN_ICI</code>) avant de partager le code</li>
+            <li>Utilisez un fichier <code>.gitignore</code> pour exclure les fichiers sensibles :</li>
+        </ul>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--text"></span> .gitignore</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Secrets</span>
+.env
+*.env
+
+<span class="hl-comment"># Fichiers runtime</span>
+GLPI_Process.log
+GLPI_LastTicket.txt
+
+<span class="hl-comment"># Fichiers Windows</span>
+Thumbs.db
+desktop.ini</code></pre>
+        </div>
+
+        <h3 class="section__subtitle">Option avancée : Variables d'environnement</h3>
+        <p>Pour une sécurité maximale, vous pouvez stocker les tokens dans des variables d'environnement système et modifier le script pour les lire :</p>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell — Définir les variables</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Définir les variables d'environnement système (une seule fois, en admin)</span>
+[<span class="hl-cmd">Environment</span>]::<span class="hl-cmd">SetEnvironmentVariable</span>(<span class="hl-string">"GLPI_API_URL"</span>, <span class="hl-string">"http://votre-glpi/apirest.php"</span>, <span class="hl-string">"Machine"</span>)
+[<span class="hl-cmd">Environment</span>]::<span class="hl-cmd">SetEnvironmentVariable</span>(<span class="hl-string">"GLPI_APP_TOKEN"</span>, <span class="hl-string">"votre-app-token"</span>, <span class="hl-string">"Machine"</span>)
+[<span class="hl-cmd">Environment</span>]::<span class="hl-cmd">SetEnvironmentVariable</span>(<span class="hl-string">"GLPI_USER_TOKEN"</span>, <span class="hl-string">"votre-user-token"</span>, <span class="hl-string">"Machine"</span>)
+[<span class="hl-cmd">Environment</span>]::<span class="hl-cmd">SetEnvironmentVariable</span>(<span class="hl-string">"GLPI_AIDE_TOKEN"</span>, <span class="hl-string">"votre-aide-token"</span>, <span class="hl-string">"Machine"</span>)</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell — Lecture dans le script</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-variable">$Script:Config</span> = @{
+    <span class="hl-param">ApiUrl</span>        = <span class="hl-variable">$env:GLPI_API_URL</span>
+    <span class="hl-param">AppToken</span>      = <span class="hl-variable">$env:GLPI_APP_TOKEN</span>
+    <span class="hl-param">UserToken</span>     = <span class="hl-variable">$env:GLPI_USER_TOKEN</span>
+    <span class="hl-param">GlpiaideToken</span> = <span class="hl-variable">$env:GLPI_AIDE_TOKEN</span>
+    <span class="hl-comment"># ...</span>
+}</code></pre>
+        </div>
+
+        <h3 class="section__subtitle">Sécurité réseau</h3>
+        <ul>
+            <li>🔒 Ollama n'expose son API que sur <code>localhost:11434</code> par défaut — aucune donnée ne transite sur le réseau</li>
+            <li>🔒 L'API GLPI doit être accessible uniquement depuis le serveur exécutant le script (filtrage IP dans le client API)</li>
+            <li>🔒 Les sessions GLPI sont fermées systématiquement dans un bloc <code>finally</code></li>
+            <li>🔒 Le fichier mémoire (<code>GLPI_LastTicket.txt</code>) évite le double traitement en cas de redémarrage</li>
+        </ul>
+    </section>
+
+    <!-- ═══ TROUBLESHOOTING ═══ -->
+    <section id="troubleshooting" class="section">
+        <div class="section__header">
+            <div class="section__number">7</div>
+            <h2 class="section__title">Dépannage</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="min-width:250px;">Problème</th>
+                        <th>Cause probable</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ERROR_SESSION_TOKEN_MISSING</code></td>
+                        <td>Token invalide ou expiré</td>
+                        <td>Régénérer le User-Token dans GLPI</td>
+                    </tr>
+                    <tr>
+                        <td><code>Invoke-RestMethod : Impossible de se connecter</code></td>
+                        <td>Ollama non démarré</td>
+                        <td>Lancer <code>ollama serve</code> ou vérifier le service</td>
+                    </tr>
+                    <tr>
+                        <td>Priorité toujours à 3</td>
+                        <td>Modèle GLPIa mal configuré</td>
+                        <td>Tester avec <code>ollama run GLPIa "test"</code></td>
+                    </tr>
+                    <tr>
+                        <td>Ticket traité en boucle</td>
+                        <td>Marqueur <code>requesttypes_id</code> non appliqué</td>
+                        <td>Vérifier les droits de modification du compte principal</td>
+                    </tr>
+                    <tr>
+                        <td>Réponse Ollama très lente (&gt;2 min)</td>
+                        <td>Pas de GPU / RAM insuffisante</td>
+                        <td>Augmenter la RAM ou utiliser un modèle plus petit (phi3, tinyllama)</td>
+                    </tr>
+                    <tr>
+                        <td><code>model 'GLPIa' not found</code></td>
+                        <td>Modèle non créé</td>
+                        <td>Exécuter <code>ollama create GLPIa -f ...</code></td>
+                    </tr>
+                    <tr>
+                        <td>Caractères HTML visibles dans la réponse GLPI</td>
+                        <td>GLPI n'interprète pas le HTML du suivi</td>
+                        <td>Vérifier que le suivi est ajouté avec <code>content_type=text/html</code></td>
+                    </tr>
+                    <tr>
+                        <td>Le script ne détecte pas les nouveaux tickets</td>
+                        <td>Filtre trop restrictif</td>
+                        <td>Vérifier <code>status=1</code> et <code>requesttypes_id ≠ 8</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="section__subtitle">Activer les logs détaillés</h3>
+        <p>Pour activer le logging dans le script, décommentez la fonction <code>Write-Log</code> en haut du fichier :</p>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--ps"></span> PowerShell</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Décommenter ce bloc pour activer les logs dans le fichier</span>
+<span class="hl-keyword">function</span> <span class="hl-cmd">Write-Log</span> {
+    <span class="hl-keyword">param</span>(
+        [<span class="hl-param">string</span>]<span class="hl-variable">$Message</span>,
+        [<span class="hl-param">ValidateSet</span>(<span class="hl-string">"Info"</span>,<span class="hl-string">"Success"</span>,<span class="hl-string">"Warning"</span>,<span class="hl-string">"Error"</span>)]
+        [<span class="hl-param">string</span>]<span class="hl-variable">$Level</span> = <span class="hl-string">"Info"</span>
+    )
+    <span class="hl-variable">$timestamp</span> = <span class="hl-cmd">Get-Date</span> <span class="hl-flag">-Format</span> <span class="hl-string">"yyyy-MM-dd HH:mm:ss"</span>
+    <span class="hl-variable">$logEntry</span>  = <span class="hl-string">"[$timestamp][$Level] $Message"</span>
+    <span class="hl-cmd">Add-Content</span> <span class="hl-flag">-Path</span> <span class="hl-variable">$Script:Config</span>.LogFile <span class="hl-flag">-Value</span> <span class="hl-variable">$logEntry</span>
+}</code></pre>
+        </div>
+
+        <h3 class="section__subtitle">Commandes de diagnostic</h3>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--bash"></span> Terminal</div>
+                <button class="code-block__copy" onclick="copyCode(this)">Copier</button>
+            </div>
+            <pre><code><span class="hl-comment"># Vérifier qu'Ollama répond</span>
+<span class="hl-cmd">curl</span> http://localhost:11434/api/tags
+
+<span class="hl-comment"># Lister les modèles installés</span>
+<span class="hl-cmd">ollama</span> list
+
+<span class="hl-comment"># Tester l'API GLPI (PowerShell)</span>
+<span class="hl-cmd">Invoke-RestMethod</span> <span class="hl-flag">-Uri</span> <span class="hl-string">"http://votre-glpi/apirest.php/"</span> <span class="hl-flag">-Method</span> Get
+
+<span class="hl-comment"># Voir les logs en temps réel</span>
+<span class="hl-cmd">Get-Content</span> <span class="hl-string">"C:\Scripts\GLPI_Process.log"</span> <span class="hl-flag">-Tail</span> <span class="hl-number">50</span> <span class="hl-flag">-Wait</span>
+
+<span class="hl-comment"># Voir le dernier ticket traité</span>
+<span class="hl-cmd">Get-Content</span> <span class="hl-string">"C:\Scripts\GLPI_LastTicket.txt"</span></code></pre>
+        </div>
+    </section>
+
+    <!-- ═══ STRUCTURE ═══ -->
+    <section id="structure" class="section">
+        <div class="section__header">
+            <div class="section__number">8</div>
+            <h2 class="section__title">Structure du projet</h2>
+        </div>
+
+        <div class="code-block">
+            <div class="code-block__header">
+                <div class="code-block__lang"><span class="dot dot--text"></span> Arborescence</div>
+            </div>
+            <pre><code>glpi-ai-processor/
+├── 📄 GLPI_AI_Processor.ps1        <span class="hl-comment"># Script principal</span>
+├── 📄 README.md                     <span class="hl-comment"># Documentation Markdown</span>
+├── 📄 index.html                    <span class="hl-comment"># Cette page de documentation</span>
+├── 📄 .gitignore                    <span class="hl-comment"># Exclusions Git</span>
+├── 📄 LICENSE                       <span class="hl-comment"># Licence MIT</span>
+│
+├── 📁 Modelfiles/
+│   ├── 📄 Modelfile_GLPIa           <span class="hl-comment"># Modèle analyse de priorité</span>
+│   ├── 📄 Modelfile_GLPIaresponse   <span class="hl-comment"># Modèle réponse utilisateur</span>
+│   └── 📄 Modelfile_glpiaide        <span class="hl-comment"># Modèle aide technicien</span>
+│
+└── 📁 Logs/                         <span class="hl-comment"># (non commité) Fichiers runtime</span>
+    ├── 📄 GLPI_Process.log          <span class="hl-comment"># Logs d'exécution</span>
+    └── 📄 GLPI_LastTicket.txt       <span class="hl-comment"># Mémoire dernier ticket</span></code></pre>
+        </div>
+    </section>
+
+    <!-- ═══ CHANGELOG ═══ -->
+    <section id="changelog" class="section">
+        <div class="section__header">
+            <div class="section__number">9</div>
+            <h2 class="section__title">Historique des versions</h2>
+        </div>
+
+        <div class="changelog">
+            <div class="changelog__entry">
+                <div class="changelog__version">
+                    <span class="changelog__tag changelog__tag--latest">v2.26.02</span>
+                    <span class="changelog__date">17 février 2026</span>
+                </div>
+                <div class="changelog__content">
+                    <ul>
+                        <li>Optimisation complète du script</li>
+                        <li>Gestion des tickets clos et déjà traités</li>
+                        <li>Logging amélioré avec niveaux de sévérité</li>
+                        <li>Fichier mémoire anti-doublon (<code>GLPI_LastTicket.txt</code>)</li>
+                        <li>Fermeture systématique des sessions (bloc <code>finally</code>)</li>
+                        <li>Pause entre les tickets pour éviter la surcharge</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="changelog__entry">
+                <div class="changelog__version">
+                    <span class="changelog__tag">v1.24.07</span>
+                    <span class="changelog__date">31 juillet 2024</span>
+                </div>
+                <div class="changelog__content">
+                    <ul>
+                        <li>Version initiale fonctionnelle</li>
+                        <li>Analyse de priorité via Ollama</li>
+                        <li>Réponse automatique aux tickets</li>
+                        <li>Intégration API GLPI</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ CREDITS ═══ -->
+    <section class="section">
+        <div class="section__header">
+            <div class="section__number">⚡</div>
+            <h2 class="section__title">Crédits & Licence</h2>
+        </div>
+
+        <div class="features" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div class="feature-card">
+                <div class="feature-card__icon">👤</div>
+                <h3>Auteur</h3>
+                <p><strong>Alexandre TABOIN</strong><br><a href="https://taboin.fr" target="_blank" style="color:var(--accent);">taboin.fr</a></p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--purple">🤖</div>
+                <h3>IA utilisées</h3>
+                <p>Développement assisté par ChatGPT 4o, Mistral Codestral, Claude Opus</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon feature-card__icon--green">📜</div>
+                <h3>Licence</h3>
+                <p>MIT — Libre d'utilisation, modification et redistribution</p>
+            </div>
+        </div>
+
+        <div class="alert alert--success">
+            <div class="alert__icon">🌐</div>
+            <div>
+                <strong>100% local & open source.</strong> Ce projet utilise des modèles d'IA locaux via Ollama. Aucune donnée de ticket n'est envoyée vers des services cloud externes.
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+    <div class="footer__inner">
+        <div class="footer__left">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+            <span>GLPI AI Processor — Fait avec ❤️ par <a href="https://taboin.fr" target="_blank" style="color:var(--accent);">Alexandre TABOIN</a></span>
+        </div>
+        <div class="footer__right">
+            <a href="https://github.com/AlexandreTaboin/automatic-GLPI-ticket-response-using-llm" target="_blank" style="color:var(--text-muted);text-decoration:none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </div>
+    </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     BACK TO TOP
+     ═══════════════════════════════════════════════════════════════ -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ADDITIONAL STYLES (Tabs, Flow, Changelog, Footer, etc.)
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+    /* TABS */
+    .tabs { margin: 32px 0; }
+    .tabs__nav {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 24px;
+        overflow-x: auto;
+    }
+    .tabs__btn {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        font-family: var(--font-sans);
+    }
+    .tabs__btn:hover { color: var(--text-secondary); }
+    .tabs__btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+    .tabs__panel { display: none; }
+    .tabs__panel.active { display: block; }
+
+    /* PRIORITY BADGES */
+    .priority-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.9rem;
+    }
+    .priority-badge--1 { background: rgba(16,185,129,0.15); color: #10b981; }
+    .priority-badge--2 { background: rgba(6,182,212,0.15); color: #06b6d4; }
+    .priority-badge--3 { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .priority-badge--4 { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .priority-badge--5 { background: rgba(220,38,38,0.2); color: #fca5a5; }
+
+    /* FLOW DIAGRAM */
+    .flow-diagram {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin: 32px 0;
+    }
+    .flow-step {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        width: 100%;
+        max-width: 560px;
+        transition: all 0.3s;
+    }
+    .flow-step:hover {
+        border-color: var(--accent);
+        transform: scale(1.02);
+    }
+    .flow-step__number {
+        width: 36px; height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+    .flow-step__content { display: flex; flex-direction: column; gap: 2px; }
+    .flow-step__content strong { font-size: 0.95rem; }
+    .flow-step__content span { font-size: 0.82rem; color: var(--text-muted); }
+    .flow-arrow { color: var(--accent); font-size: 1.2rem; opacity: 0.6; }
+
+    /* CHANGELOG */
+    .changelog { display: flex; flex-direction: column; gap: 24px; }
+    .changelog__entry {
+        padding: 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+    }
+    .changelog__version {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .changelog__tag {
+        padding: 4px 12px;
+        background: rgba(59,130,246,0.1);
+        border: 1px solid rgba(59,130,246,0.2);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--accent);
+        font-family: var(--font-mono);
+    }
+    .changelog__tag--latest {
+        background: rgba(16,185,129,0.1);
+        border-color: rgba(16,185,129,0.2);
+        color: var(--accent-green);
+    }
+    .changelog__date { font-size: 0.85rem; color: var(--text-muted); }
+    .changelog__content ul { padding-left: 20px; }
+    .changelog__content li {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+
+    /* FOOTER */
+    .footer {
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid var(--border);
+        padding: 24px 2rem;
+        margin-top: 40px;
+    }
+    .footer__inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .footer__left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    /* BACK TO TOP */
+    .back-to-top {
+        position: fixed;
+        bottom: 32px;
+        right: 32px;
+        z-index: 999;
+        width: 48px; height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s;
+        box-shadow: var(--shadow);
+    }
+    .back-to-top.visible { opacity: 1; transform: translateY(0); }
+    .back-to-top:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: translateY(-2px);
+    }
+
+    /* SMOOTH SCROLL INDICATOR */
+    .scroll-progress {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-purple));
+        z-index: 999;
+        transition: width 0.1s;
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<script>
+    // ── Copy to clipboard ──
+    function copyCode(button) {
+        const codeBlock = button.closest('.code-block');
+        const code = codeBlock.querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            button.textContent = '✓ Copié !';
+            button.classList.add('copied');
+            setTimeout(() => {
+                button.textContent = 'Copier';
+                button.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // ── Tabs ──
+    function switchTab(event, tabId) {
+        // Remove active from all buttons and panels
+        document.querySelectorAll('.tabs__btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tabs__panel').forEach(panel => panel.classList.remove('active'));
+
+        // Activate clicked tab
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // ── Navbar scroll effect ──
+    const navbar = document.querySelector('.navbar');
+    const backToTop = document.getElementById('backToTop');
+    const scrollProgress = document.getElementById('scrollProgress');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollY / docHeight) * 100;
+
+        // Navbar shadow
+        navbar.classList.toggle('scrolled', scrollY > 50);
+
+        // Back to top button
+        backToTop.classList.toggle('visible', scrollY > 500);
+
+        // Scroll progress bar
+        scrollProgress.style.width = scrollPercent + '%';
+    });
+
+    // ── Mobile menu ──
+    const hamburger = document.querySelector('.navbar__hamburger');
+    const navLinks = document.querySelector('.navbar__links');
+
+    hamburger.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
+    });
+
+    // Close menu when clicking a link
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('open');
+        });
+    });
+
+    // ── Intersection Observer for fade-in animations ──
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all sections and cards
+    document.querySelectorAll('.section, .feature-card, .arch-node, .flow-step').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+</script>
+
+</body>
+</html>
+

@@ -32,7 +32,7 @@ $Script:Config = @{
 #region FONCTIONS UTILITAIRES
 
 #Utile pour du débug, pas besoin en prod
-<#function Write-Log {
+function Write-Log {
     param(
         [string]$Message,
         [ValidateSet("Info","Success","Warning","Error")]
@@ -48,7 +48,7 @@ $Script:Config = @{
         "Warning" { Write-Host $logEntry -ForegroundColor Yellow }
         "Error"   { Write-Host $logEntry -ForegroundColor Red }
     }
-}#>
+}
 
 function Initialize-Session {
     param([string]$UserToken, [string]$Label = "")
